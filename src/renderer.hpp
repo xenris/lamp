@@ -12,26 +12,61 @@ struct Colour {
     uint8_t blue;
 };
 
+typedef Colour (*ShaderFunc)(float, float, void*);
+
 template <class ledStripPin>
 class Renderer {
     static constexpr int8_t width = 10;
     static constexpr int8_t height = 12;
     Colour buffer[width][height];
+    ShaderFunc shader;
+    void* data;
+    int8_t x = 0;
+    int8_t y = 0;
 
 public:
-    Renderer() {
+    Renderer(ShaderFunc shader) : shader(shader) {
         ledStripPin::direction(ledStripPin::Direction::Output);
     }
 
-    void render(Colour (*shader)(rational16<1>, rational16<1>, void*), rational16<4> rotation, rational16<1> blur, void* data) {
-        for(int8_t y = 0; y < height; y++) {
-            for(int8_t x = 0; x < width; x++) {
-                buffer[x][y] = shader(rational16<1>(x, width), rational16<1>(y, height), data);
-                // TODO blur with neighbouring pixels.
+    void setData(void* d) {
+        data = d;
+    }
+
+    bool render() {
+        buffer[x][y] = shader(float(x) / width, float(y) / height, data);
+
+        x += 1;
+
+        if(x == width) {
+            x = 0;
+            y += 1;
+
+            if(y == height) {
+                y = 0;
+
+                sendBuffer();
+
+                return true;
             }
         }
 
-        // TODO send colour information to led strips.
+        return false;
+    }
+
+    void sendBuffer() {
+        atomic {
+            int8_t offset = 0;
+
+            for(int8_t y = 0; y < height; y++) {
+                for(int8_t x = 0; x < width; x += 2) {
+                    int8_t tx = wrap(x - offset, width);
+                    sendColour(buffer[tx][y]);
+                }
+
+                offset += 1;
+            }
+        }
     }
 
     void sendColours(Colour* colours, uint8_t count, bool ensureFinish) {
@@ -74,6 +109,18 @@ public:
 
     void finish() {
         _delay_us(55);
+    }
+
+    int8_t wrap(int8_t x, int8_t w) {
+        while(x < 0) {
+            x += w;
+        }
+
+        while(x >= w) {
+            x -= w;
+        }
+
+        return x;
     }
 };
 
