@@ -6,6 +6,7 @@ PROJECT_TOP = $(TUP_CWD)
 
 CC = avr-g++
 OBJDUMP = avr-objdump
+OBJCOPY = avr-objcopy
 
 MMCU = $(mcu)
 FREQ = $(freq)
@@ -16,10 +17,9 @@ CFLAGS += -Wextra
 CFLAGS += -Werror
 CFLAGS += -ffunction-sections
 CFLAGS += -g
-CFLAGS += -std=c++14
+CFLAGS += -std=c++17
 CFLAGS += -Os
 CFLAGS += -mmcu=$(MMCU)
-CFLAGS += -DF_CPU=$(FREQ)
 CFLAGS += -Wl,-gc-sections
 CFLAGS += -fdiagnostics-color=always
 CFLAGS += -Wno-unused-parameter
@@ -29,4 +29,3 @@ CFLAGS += -flto
 CFLAGS += -ffreestanding
 CFLAGS += -fno-exceptions
 CFLAGS += -fmax-errors=3
-CFLAGS += -Wold-style-cast

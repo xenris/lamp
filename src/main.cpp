@@ -1,27 +1,36 @@
 #include "main.hpp"
 
-#include <nbavr.cpp>
-
-Stream<char>* stdoutp;
+INCLUDE_DEFAULT_CALLBACK();
+INCLUDE_TIMERCOUNTER_OUTPUT_CALLBACK(1, A);
+INCLUDE_TIMERCOUNTER_OUTPUT_CALLBACK(1, B);
+INCLUDE_TIMERCOUNTER_OVERFLOW_CALLBACK(1);
+INCLUDE_TIMERCOUNTER_INPUT_CALLBACK(1);
+INCLUDE_USART_CALLBACK(0, RX);
+INCLUDE_USART_CALLBACK(0, DE);
 
 void main() {
-    typedef PinC0 ledStripPin;
-    typedef TimerCounter1 clockTimer;
-    typedef Usart0 serialUsart;
+    const uint32_t CpuFreq = 16000000;
 
-    StreamBuffer<char, 60> stdout;
-    StreamBuffer<char, 0> stdin;
+    using LedStripPin = nbavr::PinC1;
+    using SystemTimer = nbavr::TimerCounter1;
+    using SerialUsart = nbavr::Usart0;
+    using cout_t = nbavr::Queue<char, 60>;
+    using irin_t = nbavr::Queue<int16_t, 20>;
 
-    stdoutp = &stdout;
+    using Clock = nbavr::Clock<SystemTimer, CpuFreq>;
 
-    stdout << "start" << endl;
+    static cout_t cout;
+    static irin_t irin;
+    // Used to prevent led updating while an ir message is being received.
+    // Otherwise the message will be missed.
+    static bool irActive = false;
 
-    ClockT<clockTimer> clock;
+    nbavr::Serial<SerialUsart, cout_t>::init(CpuFreq, 115200, &cout);
 
-    Serial<serialUsart> serial(stdout, stdin);
-    Lamp<ledStripPin> lamp(clock);
+    static Ir<Clock, irin_t> ir(irin, irActive);
+    static Lamp<Clock, LedStripPin, cout_t, irin_t> lamp(cout, irin, irActive);
 
-    Task* tasks[] = {&serial, &lamp};
+    static nbavr::Task<Clock>* tasks[] = {&lamp, &ir};
 
-    nbavr(clock, tasks);
+    static nbavr::TaskManager<Clock> tm(tasks);
 }

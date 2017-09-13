@@ -4,5 +4,6 @@
 #include <nbavr.hpp>
 
 #include "lamp.hpp"
+#include "ir.hpp"
 
 #endif
