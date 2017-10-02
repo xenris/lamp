@@ -2,6 +2,7 @@
 #define LAMP_HPP
 
 #include <nbavr.hpp>
+#include "control.hpp"
 
 struct Color {
     uint8_t r;
@@ -21,34 +22,32 @@ struct Color {
     }
 };
 
-template <class Clock, class LedStripPin, class cout_t, class irin_t>
+template <class Clock, class LedStripPin>
 class Lamp : public nbavr::Task<Clock> {
-    cout_t& cout;
-    irin_t& irin;
+    LampState& lampState;
     bool& irActive;
     Color m[10][10];
 
 public:
-    Lamp(cout_t& cout, irin_t& irin, bool& irActive) : cout(cout), irin(irin), irActive(irActive) {
-        block LedStripPin::direction(nbavr::Direction::Output);
+    Lamp(LampState& lampState, bool& irActive) : lampState(lampState), irActive(irActive) {
+        block LedStripPin::direction(nbavr::hw::Direction::Output);
         clear();
     }
 
 private:
     void loop() override {
-        int16_t b;
-        while(irin.pop(&b)) {
-            cout << b << '\n';
-        }
-
         if(!irActive) {
-            static int8_t i = 0;
-
-            clear();
-
-            i = (i + 1) % 10;
-
-            m[i][i] = 0x010101;
+            if(lampState.on) {
+                for(Color (&cs)[10] : m) {
+                    for(Color& c : cs) {
+                        c.r = lampState.brightness + lampState.redOffset;
+                        c.g = lampState.brightness + lampState.greenOffset;
+                        c.b = lampState.brightness + lampState.blueOffset;
+                    }
+                }
+            } else {
+                clear();
+            }
 
             draw();
 
@@ -88,25 +87,25 @@ private:
 
     static force_inline void sendBit(uint8_t bit) {
         if(bit == 0) {
-            block LedStripPin::output(nbavr::Value::High);
+            block LedStripPin::output(nbavr::hw::Value::High);
             Clock::template delay<50>();
-            block LedStripPin::output(nbavr::Value::Low);
+            block LedStripPin::output(nbavr::hw::Value::Low);
             // Clock::template delay<700>();
         } else {
-            block LedStripPin::output(nbavr::Value::High);
+            block LedStripPin::output(nbavr::hw::Value::High);
             Clock::template delay<250>();
-            block LedStripPin::output(nbavr::Value::Low);
+            block LedStripPin::output(nbavr::hw::Value::Low);
             // Clock::template delay<150>();
         }
         // if(bit == 0) {
-        //     block LedStripPin::output(nbavr::Value::High);
+        //     block LedStripPin::output(nbavr::hw::Value::High);
         //     Clock::template delay<200>();
-        //     block LedStripPin::output(nbavr::Value::Low);
+        //     block LedStripPin::output(nbavr::hw::Value::Low);
         //     Clock::template delay<750>();
         // } else {
-        //     block LedStripPin::output(nbavr::Value::High);
+        //     block LedStripPin::output(nbavr::hw::Value::High);
         //     Clock::template delay<750>();
-        //     block LedStripPin::output(nbavr::Value::Low);
+        //     block LedStripPin::output(nbavr::hw::Value::Low);
         //     Clock::template delay<200>();
         // }
     }

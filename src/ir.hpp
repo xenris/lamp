@@ -7,6 +7,9 @@
 // Pushes received bytes to given stream.
 // Pushes -1 on repeat signal.
 
+// Idea: Could send the last message on repeat, but with an extra bit set to
+//  indicate repeat. Or maybe negative for repeat.
+
 template <class Clock, class irin_t>
 struct Ir : nbavr::Task<Clock> {
     static constexpr uint16_t HeaderLength = 3335;

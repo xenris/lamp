@@ -3,6 +3,7 @@
 
 #include <nbavr.hpp>
 
+#include "control.hpp"
 #include "lamp.hpp"
 #include "ir.hpp"
 
