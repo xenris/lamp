@@ -1,15 +1,16 @@
 #ifndef CONTROL_HPP
 #define CONTROL_HPP
 
+#include "color.hpp"
+
 struct LampState {
     bool on = false;
-    int8_t brightness = 1;
-    int8_t redOffset = 0;
-    int8_t greenOffset = 0;
-    int8_t blueOffset = 0;
+    int h = 0;
+    int s = 0;
+    int v = 10;
 };
 
-template <class Nbavr, class irin_t>
+template <class Nbavr, class irin_t, class cout_t>
 struct Control : public nbavr::Task<Nbavr> {
     enum Button : int16_t {
         Repeat = -1,
@@ -38,13 +39,18 @@ struct Control : public nbavr::Task<Nbavr> {
 
     LampState& lampState;
     irin_t& irin;
+    cout_t& cout;
     Button mPreviousButton;
 
-    Control(LampState& lampState, irin_t& irin) : lampState(lampState), irin(irin) {
+    Control(LampState& lampState, irin_t& irin, cout_t& cout) : lampState(lampState), irin(irin), cout(cout) {
     }
 
     void loop() override {
         int16_t m = 0;
+        bool& on = lampState.on;
+        int& h = lampState.h;
+        int& s = lampState.s;
+        int& v = lampState.v;
 
         if(irin.pop(&m)) {
             Button button = Button(m);
@@ -53,43 +59,51 @@ struct Control : public nbavr::Task<Nbavr> {
 
             switch(button) {
             case Button::Power:
-                lampState.on = !lampState.on;
+                on = !on;
                 break;
-            case Button::Plus:
-                lampState.brightness++;
-                // lampState.red++;
-                // lampState.green++;
-                // lampState.blue++;
+            case Button::Rewind:
+                h -= 2;
+                break;
+            case Button::FastForward:
+                h += 2;
                 break;
             case Button::Minus:
-                lampState.brightness--;
+                v -= 1;
+                break;
+            case Button::Plus:
+                v += 1;
                 break;
             case Button::One:
-                lampState.redOffset++;
+                s -= 2;
                 break;
             case Button::Two:
-                lampState.greenOffset++;
                 break;
             case Button::Three:
-                lampState.blueOffset++;
+                s += 2;
+                break;
+            case Button::Four:
+                break;
+            case Button::Five:
+                break;
+            case Button::Six:
                 break;
             case Button::Seven:
-                lampState.redOffset--;
                 break;
             case Button::Eight:
-                lampState.greenOffset--;
                 break;
             case Button::Nine:
-                lampState.blueOffset--;
-                break;
-
                 break;
             case Button::Repeat:
-                if((mPreviousButton == Button::Plus)
-                || (mPreviousButton == Button::Minus)
+                if((mPreviousButton == Button::Minus)
+                || (mPreviousButton == Button::Plus)
                 || (mPreviousButton == Button::One)
+                || (mPreviousButton == Button::Rewind)
+                || (mPreviousButton == Button::FastForward)
                 || (mPreviousButton == Button::Two)
                 || (mPreviousButton == Button::Three)
+                || (mPreviousButton == Button::Four)
+                || (mPreviousButton == Button::Five)
+                || (mPreviousButton == Button::Six)
                 || (mPreviousButton == Button::Seven)
                 || (mPreviousButton == Button::Eight)
                 || (mPreviousButton == Button::Nine)) {
@@ -102,12 +116,16 @@ struct Control : public nbavr::Task<Nbavr> {
             }
 
             mPreviousButton = button;
-        }
 
-        lampState.brightness = nbavr::clip(lampState.brightness, int8_t(0), int8_t(16));
-        lampState.redOffset = nbavr::clip(lampState.redOffset, int8_t(0), int8_t(16));
-        lampState.greenOffset = nbavr::clip(lampState.greenOffset, int8_t(0), int8_t(16));
-        lampState.blueOffset = nbavr::clip(lampState.blueOffset, int8_t(0), int8_t(16));
+            if(h > 360) {
+                h -= 360;
+            } else if(h < 1) {
+                h += 360;
+            }
+
+            s = nbavr::clip(s, 0, 100);
+            v = nbavr::clip(v, 1, 100);
+        }
     }
 };
 

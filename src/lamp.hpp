@@ -3,24 +3,7 @@
 
 #include <nbavr.hpp>
 #include "control.hpp"
-
-struct Color {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-
-    Color() : r(0), g(0), b(0) {}
-
-    Color(uint8_t r, uint8_t g, uint8_t b) : r(r), g(g), b(b) {}
-
-    Color& operator=(const uint32_t c) {
-        r = (c >> 16) & 0xff;
-        g = (c >> 8) & 0xff;
-        b = (c >> 0) & 0xff;
-
-        return *this;
-    }
-};
+#include "color.hpp"
 
 template <class Clock, class LedStripPin>
 class Lamp : public nbavr::Task<Clock> {
@@ -38,11 +21,11 @@ private:
     void loop() override {
         if(!irActive) {
             if(lampState.on) {
+                Color u = Color::fromHSV(lampState.h, lampState.s, lampState.v);
+
                 for(Color (&cs)[10] : m) {
                     for(Color& c : cs) {
-                        c.r = lampState.brightness + lampState.redOffset;
-                        c.g = lampState.brightness + lampState.greenOffset;
-                        c.b = lampState.brightness + lampState.blueOffset;
+                        c = u;
                     }
                 }
             } else {

@@ -13,7 +13,9 @@ void main() {
 
     using LedStripPin = nbavr::hw::PinC1;
     using SystemTimer = nbavr::hw::TimerCounter1;
+    using SerialUsart = nbavr::hw::Usart0;
     using irin_t = nbavr::Queue<int16_t, 8>;
+    using cout_t = nbavr::Queue<char, 100>;
 
     using Clock = nbavr::Clock<SystemTimer, CpuFreq>;
 
@@ -22,9 +24,12 @@ void main() {
     // Used to prevent led updating while an ir message is being received.
     // Otherwise the message will be missed.
     static bool irActive = false;
+    static cout_t cout;
+
+    nbavr::Serial<SerialUsart, cout_t>::init(CpuFreq, 115200, &cout);
 
     // TODO Have another task which actually does the effects.
-    static Control<Clock, irin_t> control(lampState, irin);
+    static Control<Clock, irin_t, cout_t> control(lampState, irin, cout);
     static Ir<Clock, irin_t> ir(irin, irActive);
     static Lamp<Clock, LedStripPin> lamp(lampState, irActive);
 
