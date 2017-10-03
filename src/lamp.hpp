@@ -21,12 +21,16 @@ private:
     void loop() override {
         if(!irActive) {
             if(lampState.on) {
-                Color u = Color::fromHSV(lampState.h, lampState.s, lampState.v);
-
-                for(Color (&cs)[10] : m) {
-                    for(Color& c : cs) {
-                        c = u;
-                    }
+                switch(lampState.effect) {
+                case LampState::Effect::Uniform:
+                    lampState.uniform.process(m, lampState.h, lampState.s, lampState.v);
+                    break;
+                case LampState::Effect::Rain:
+                    lampState.rain.process(m, Clock::getTicks(), lampState.h, lampState.s, lampState.v);
+                    break;
+                case LampState::Effect::Flame:
+                    lampState.flame.process(m, lampState.h, lampState.s, lampState.v);
+                    break;
                 }
             } else {
                 clear();

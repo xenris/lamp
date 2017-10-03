@@ -2,16 +2,34 @@
 #define CONTROL_HPP
 
 #include "color.hpp"
+#include "flame.hpp"
+#include "rain.hpp"
+#include "uniform.hpp"
 
 struct LampState {
+    enum class Effect : int8_t {
+        Uniform,
+        Rain,
+        Flame,
+    };
+
     bool on = false;
+    Effect effect = Effect::Uniform;
+    union {
+        Uniform uniform;
+        Rain rain;
+        Flame flame;
+    };
     int h = 0;
     int s = 0;
     int v = 10;
+
+    LampState() {
+    }
 };
 
-template <class Nbavr, class irin_t, class cout_t>
-struct Control : public nbavr::Task<Nbavr> {
+template <class Clock, class irin_t, class cout_t>
+struct Control : public nbavr::Task<Clock> {
     enum Button : int16_t {
         Repeat = -1,
         Power = 162,
@@ -48,6 +66,7 @@ struct Control : public nbavr::Task<Nbavr> {
     void loop() override {
         int16_t m = 0;
         bool& on = lampState.on;
+        auto& effect = lampState.effect;
         int& h = lampState.h;
         int& s = lampState.s;
         int& v = lampState.v;
@@ -60,6 +79,18 @@ struct Control : public nbavr::Task<Nbavr> {
             switch(button) {
             case Button::Power:
                 on = !on;
+                break;
+            case Button::Mode:
+                if(effect == LampState::Effect::Uniform) {
+                    effect = LampState::Effect::Rain;
+                    lampState.rain = Rain(Clock::getTicks());
+                } else if(effect == LampState::Effect::Rain) {
+                    effect = LampState::Effect::Flame;
+                    lampState.flame = Flame();
+                } else {
+                    effect = LampState::Effect::Uniform;
+                    lampState.uniform = Uniform();
+                }
                 break;
             case Button::Rewind:
                 h -= 2;
